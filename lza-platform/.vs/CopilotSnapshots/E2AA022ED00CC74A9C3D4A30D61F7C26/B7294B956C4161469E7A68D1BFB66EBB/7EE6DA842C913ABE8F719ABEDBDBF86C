@@ -1,0 +1,38 @@
+﻿# Product Requirements Document - LZA TFM ADO Accelerator Directory Structure
+
+## Document Information
+
+| Field | Value |
+|-------|-------|
+| **Document Title** | LZA TFM ADO Accelerator Directory Structure |
+| **Version** | 2.0 |
+| **Date** | 2024 |
+| **Author** | GitHub Copilot |
+| **Status** | Enhanced - With Lib Integration |
+| **Classification** | Internal |
+
+## Table of Contents
+
+1. [Executive Summary](#executive-summary)
+2. [Enhancement Overview](#enhancement-overview)
+3. [Original Requirements](#original-requirements)
+4. [Implementation Results](#implementation-results)
+5. [Technical Specifications](#technical-specifications)
+6. [User Experience](#user-experience)
+7. [Security Considerations](#security-considerations)
+8. [Testing and Validation](#testing-and-validation)
+9. [Success Metrics](#success-metrics)
+10. [Future Enhancements](#future-enhancements)
+11. [Appendices](#appendices)
+
+## Executive Summary
+
+This Product Requirements Document (PRD) outlines the requirements, implementation, and enhancements for the **LZA TFM ADO Accelerator Directory Structure** automation solution. The solution provides a PowerShell script that creates a standardized directory structure and configuration files for Azure Landing Zone (ALZ) Terraform deployments in Azure DevOps (ADO) environments.
+
+### Key Objectives
+
+- **Standardization**: Establish a consistent directory structure for Azure Landing Zone Terraform deployments
+- **Automation**: Eliminate manual directory and file creation processes
+- **Configuration Management**: Provide template configuration files with sensible defaults
+- **🆕 Library Integration**: Automatically include ALZ library components for advanced configurations
+- **

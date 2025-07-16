@@ -1,0 +1,272 @@
+﻿#requires -version 7
+<#
+.SYNOPSIS
+    Creates the Azure Landing Zone Accelerator directory structure and required files.
+
+.DESCRIPTION
+    This script creates the necessary directory structure for the Azure Landing Zone Accelerator
+    under lza\tfm\ado\accelerator with the following structure:
+    - accelerator/
+      - config/
+        - inputs.yaml
+        - platform-landing-zones.tfvars
+      - output/
+
+.PARAMETER BasePath
+    The base path where the lza directory structure exists. Defaults to current directory.
+
+.EXAMPLE
+    .\Create-LzaAcceleratorDirStructure.ps1
+    Creates the directory structure in the current directory
+
+.EXAMPLE
+    .\Create-LzaAcceleratorDirStructure.ps1 -BasePath "C:\MyProjects"
+    Creates the directory structure in the specified base path
+
+.NOTES
+    Author: GitHub Copilot
+    Version: 1.0
+    This script creates the directory structure but does not execute any deployments.
+#>
+
+[CmdletBinding()]
+param(
+    [Parameter(Mandatory = $false)]
+    [string]$BasePath = $PWD
+)
+
+# Define the target directory structure
+$acceleratorPath = Join-Path -Path $BasePath -ChildPath "lza\tfm\ado\accelerator"
+$configPath = Join-Path -Path $acceleratorPath -ChildPath "config"
+$outputPath = Join-Path -Path $acceleratorPath -ChildPath "output"
+
+# Define file paths
+$inputsYamlPath = Join-Path -Path $configPath -ChildPath "inputs.yaml"
+$tfvarsPath = Join-Path -Path $configPath -ChildPath "platform-landing-zones.tfvars"
+
+Write-Host "Creating Azure Landing Zone Accelerator directory structure..." -ForegroundColor Green
+
+try {
+    # Create directories if they don't exist
+    if (-not (Test-Path -Path $acceleratorPath)) {
+        Write-Host "Creating directory: $acceleratorPath" -ForegroundColor Yellow
+        New-Item -ItemType Directory -Path $acceleratorPath -Force | Out-Null
+    } else {
+        Write-Host "Directory already exists: $acceleratorPath" -ForegroundColor Cyan
+    }
+
+    if (-not (Test-Path -Path $configPath)) {
+        Write-Host "Creating directory: $configPath" -ForegroundColor Yellow
+        New-Item -ItemType Directory -Path $configPath -Force | Out-Null
+    } else {
+        Write-Host "Directory already exists: $configPath" -ForegroundColor Cyan
+    }
+
+    if (-not (Test-Path -Path $outputPath)) {
+        Write-Host "Creating directory: $outputPath" -ForegroundColor Yellow
+        New-Item -ItemType Directory -Path $outputPath -Force | Out-Null
+    } else {
+        Write-Host "Directory already exists: $outputPath" -ForegroundColor Cyan
+    }
+
+    # Create inputs.yaml file
+    $inputsYamlContent = @"
+# Azure Landing Zone Accelerator Configuration
+# This file contains the configuration parameters for deploying Azure Landing Zones
+
+# Subscription and tenant information
+default_prefix: "alz"
+default_postfix: ""
+subscription_id_management: ""
+subscription_id_identity: ""
+subscription_id_connectivity: ""
+
+# Primary location for resources
+default_location: "eastus"
+
+# Root management group configuration
+root_parent_management_group_id: ""
+
+# Networking configuration
+enable_ddos_protection: false
+hub_virtual_networks:
+  primary:
+    name: "vnet-hub-primary"
+    resource_group_name: "rg-connectivity-primary"
+    location: "eastus"
+    address_space: ["10.0.0.0/16"]
+    subnets:
+      - name: "AzureBastionSubnet"
+        address_prefixes: ["10.0.1.0/24"]
+      - name: "AzureFirewallSubnet"
+        address_prefixes: ["10.0.2.0/24"]
+      - name: "GatewaySubnet"
+        address_prefixes: ["10.0.3.0/24"]
+
+# Management configuration
+log_analytics_workspace:
+  name: "law-alz-management"
+  resource_group_name: "rg-management"
+  location: "eastus"
+  retention_in_days: 30
+
+# Security configuration
+enable_azure_firewall: true
+enable_bastion: true
+
+# Policy configuration
+deploy_management_resources: true
+configure_management_resources: true
+configure_connectivity_resources: true
+configure_identity_resources: true
+
+# Landing zone configuration
+deploy_corp_landing_zones: true
+deploy_online_landing_zones: true
+deploy_sap_landing_zones: false
+
+# Additional configuration options
+disable_telemetry: true
+enable_resource_locks: false
+"@
+
+    if (-not (Test-Path -Path $inputsYamlPath)) {
+        Write-Host "Creating file: $inputsYamlPath" -ForegroundColor Yellow
+        $inputsYamlContent | Out-File -FilePath $inputsYamlPath -Encoding UTF8
+    } else {
+        Write-Host "File already exists: $inputsYamlPath" -ForegroundColor Cyan
+    }
+
+    # Create platform-landing-zones.tfvars file
+    $tfvarsContent = @"
+# Azure Landing Zone Platform Landing Zones Terraform Variables
+# This file contains the Terraform variable definitions for platform landing zones deployment
+
+# Subscription configuration
+subscription_id_management    = ""
+subscription_id_identity     = ""
+subscription_id_connectivity = ""
+
+# Management group configuration
+root_parent_management_group_id = ""
+default_prefix                  = "alz"
+default_postfix                = ""
+
+# Location configuration
+default_location = "eastus"
+
+# Management resources configuration
+deploy_management_resources    = true
+configure_management_resources = true
+
+log_analytics_workspace_name          = "law-alz-management"
+log_analytics_workspace_location      = "eastus"
+log_analytics_workspace_sku           = "PerGB2018"
+log_analytics_workspace_retention     = 30
+
+automation_account_name     = "aa-alz-management"
+automation_account_location = "eastus"
+automation_account_sku      = "Basic"
+
+# Connectivity resources configuration
+configure_connectivity_resources = true
+
+hub_networks = [
+  {
+    name                = "hub-eastus"
+    resource_group_name = "rg-connectivity-eastus"
+    location           = "eastus"
+    address_space      = ["10.0.0.0/16"]
+    
+    subnets = [
+      {
+        name             = "AzureBastionSubnet"
+        address_prefixes = ["10.0.1.0/24"]
+      },
+      {
+        name             = "AzureFirewallSubnet"
+        address_prefixes = ["10.0.2.0/24"]
+      },
+      {
+        name             = "GatewaySubnet"
+        address_prefixes = ["10.0.3.0/24"]
+      }
+    ]
+  }
+]
+
+# Azure Firewall configuration
+enable_azure_firewall = true
+azure_firewall_config = {
+  name                = "fw-hub-eastus"
+  sku_name           = "AZFW_VNet"
+  sku_tier           = "Standard"
+  zones              = ["1", "2", "3"]
+  threat_intel_mode  = "Alert"
+}
+
+# Azure Bastion configuration
+enable_bastion = true
+bastion_config = {
+  name     = "bas-hub-eastus"
+  sku      = "Standard"
+}
+
+# DDoS Protection configuration
+enable_ddos_protection = false
+
+# Identity resources configuration
+configure_identity_resources = true
+
+# Landing zones configuration
+deploy_corp_landing_zones   = true
+deploy_online_landing_zones = true
+deploy_sap_landing_zones    = false
+
+# Policy configuration
+custom_policy_definitions     = {}
+custom_policy_set_definitions = {}
+policy_assignments_to_modify = {}
+
+# Resource locks configuration
+enable_resource_locks = false
+
+# Telemetry configuration
+disable_telemetry = true
+
+# Tags
+default_tags = {
+  Environment = "Production"
+  Owner       = "Platform Team"
+  Project     = "Azure Landing Zones"
+}
+"@
+
+    if (-not (Test-Path -Path $tfvarsPath)) {
+        Write-Host "Creating file: $tfvarsPath" -ForegroundColor Yellow
+        $tfvarsContent | Out-File -FilePath $tfvarsPath -Encoding UTF8
+    } else {
+        Write-Host "File already exists: $tfvarsPath" -ForegroundColor Cyan
+    }
+
+    Write-Host "`nDirectory structure created successfully!" -ForegroundColor Green
+    Write-Host "Created the following structure:" -ForegroundColor White
+    Write-Host "├── accelerator/" -ForegroundColor Gray
+    Write-Host "│   ├── config/" -ForegroundColor Gray
+    Write-Host "│   │   ├── inputs.yaml" -ForegroundColor Gray
+    Write-Host "│   │   └── platform-landing-zones.tfvars" -ForegroundColor Gray
+    Write-Host "│   └── output/" -ForegroundColor Gray
+    Write-Host ""
+    Write-Host "Files created:" -ForegroundColor White
+    Write-Host "- inputs.yaml: Contains YAML configuration for Azure Landing Zone deployment" -ForegroundColor Gray
+    Write-Host "- platform-landing-zones.tfvars: Contains Terraform variables for platform landing zones" -ForegroundColor Gray
+    Write-Host ""
+    Write-Host "Next steps:" -ForegroundColor White
+    Write-Host "1. Review and customize the configuration files with your specific values" -ForegroundColor Gray
+    Write-Host "2. Update subscription IDs, management group IDs, and other environment-specific settings" -ForegroundColor Gray
+    Write-Host "3. Run your Azure Landing Zone Accelerator deployment" -ForegroundColor Gray
+
+} catch {
+    Write-Error "Failed to create directory structure: $($_.Exception.Message)"
+    exit 1
+}

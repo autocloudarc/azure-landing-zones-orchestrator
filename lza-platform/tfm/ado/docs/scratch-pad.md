@@ -1,0 +1,1 @@
+Deploy-Accelerator -inputs "./accelerator/config/inputs.yaml", "./accelerator/config/platform-landing-zone.tfvars" -starterAdditionalFiles "./accelerator/config/lib" -output "./accelerator/output" -Verbose
