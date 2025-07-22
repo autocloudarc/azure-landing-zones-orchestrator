@@ -18,6 +18,13 @@ interface RequestFormData {
   region: string;
   requestReason: string;
   notes: string;
+  // Metadata fields
+  tagOwner: string;
+  tagProjectId: string;
+  tagProjectName: string;
+  tagCostCenter: string;
+  tagBusinessImpact: 'Low' | 'Medium' | 'High' | 'Critical';
+  tagDataSensitivity: 'Public' | 'Internal' | 'Confidential' | 'Restricted';
 }
 
 interface UpdateRequestProps {
@@ -40,7 +47,14 @@ const UpdateRequest: React.FC<UpdateRequestProps> = ({
     environment: 'dev',
     region: '',
     requestReason: '',
-    notes: ''
+    notes: '',
+    // Metadata fields
+    tagOwner: '',
+    tagProjectId: '',
+    tagProjectName: '',
+    tagCostCenter: '',
+    tagBusinessImpact: 'Medium',
+    tagDataSensitivity: 'Internal'
   });
 
   const [loading, setLoading] = useState(false);
@@ -84,6 +98,17 @@ const UpdateRequest: React.FC<UpdateRequestProps> = ({
       if (response.success && response.data) {
         // Populate form with the retrieved data
         const data = response.data as Record<string, unknown>; // Type assertion for database record
+        
+        console.log('📊 Raw database data:', data);
+        console.log('🏷️ Metadata values:', {
+          tag_owner: data.tag_owner,
+          tag_project_id: data.tag_project_id,
+          tag_project_name: data.tag_project_name,
+          tag_cost_center: data.tag_cost_center,
+          tag_business_impact: data.tag_business_impact,
+          tag_data_sensitivity: data.tag_data_sensitivity
+        });
+        
         setFormData({
           id: Number(data.id) || 0,
           requester: {
@@ -97,7 +122,23 @@ const UpdateRequest: React.FC<UpdateRequestProps> = ({
           environment: (data.environment as 'prd' | 'dev' | 'tst' | 'qua' | 'stg' | 'ppd') || 'dev',
           region: String(data.region || ''),
           requestReason: String(data.request_reason || ''),
-          notes: String(data.notes || '')
+          notes: String(data.notes || ''),
+          // Metadata fields
+          tagOwner: String(data.tag_owner || ''),
+          tagProjectId: String(data.tag_project_id || ''),
+          tagProjectName: String(data.tag_project_name || ''),
+          tagCostCenter: String(data.tag_cost_center || ''),
+          tagBusinessImpact: (data.tag_business_impact as 'Low' | 'Medium' | 'High' | 'Critical') || 'Medium',
+          tagDataSensitivity: (data.tag_data_sensitivity as 'Public' | 'Internal' | 'Confidential' | 'Restricted') || 'Internal'
+        });
+        
+        console.log('✅ Form data set with metadata:', {
+          tagOwner: String(data.tag_owner || ''),
+          tagProjectId: String(data.tag_project_id || ''),
+          tagProjectName: String(data.tag_project_name || ''),
+          tagCostCenter: String(data.tag_cost_center || ''),
+          tagBusinessImpact: (data.tag_business_impact as 'Low' | 'Medium' | 'High' | 'Critical') || 'Medium',
+          tagDataSensitivity: (data.tag_data_sensitivity as 'Public' | 'Internal' | 'Confidential' | 'Restricted') || 'Internal'
         });
         
         setRequestFound(true);
@@ -161,7 +202,14 @@ const UpdateRequest: React.FC<UpdateRequestProps> = ({
         environment: formData.environment,
         region: formData.region,
         request_reason: formData.requestReason,
-        notes: formData.notes
+        notes: formData.notes,
+        // Metadata fields
+        tag_owner: formData.tagOwner,
+        tag_project_id: formData.tagProjectId,
+        tag_project_name: formData.tagProjectName,
+        tag_cost_center: formData.tagCostCenter,
+        tag_business_impact: formData.tagBusinessImpact,
+        tag_data_sensitivity: formData.tagDataSensitivity
       };
 
       const response = await requestService.updateRequest(formData.id, updateData as Record<string, unknown>);
@@ -195,7 +243,14 @@ const UpdateRequest: React.FC<UpdateRequestProps> = ({
       environment: 'dev',
       region: '',
       requestReason: '',
-      notes: ''
+      notes: '',
+      // Metadata fields
+      tagOwner: '',
+      tagProjectId: '',
+      tagProjectName: '',
+      tagCostCenter: '',
+      tagBusinessImpact: 'Medium',
+      tagDataSensitivity: 'Internal'
     });
     setRequestFound(false);
     setMessage('');
@@ -393,6 +448,92 @@ const UpdateRequest: React.FC<UpdateRequestProps> = ({
                 rows={3}
                 placeholder="Additional notes or comments"
               />
+            </div>
+
+            {/* Tags & Metadata */}
+            <h3>Tags & Metadata</h3>
+            <div className="form-group">
+              <label htmlFor="tagOwner">Owner *</label>
+              <input
+                type="email"
+                id="tagOwner"
+                name="tagOwner"
+                value={formData.tagOwner}
+                onChange={handleInputChange}
+                placeholder="Resource owner email"
+                required
+              />
+            </div>
+            
+            <div className="form-group">
+              <label htmlFor="tagProjectId">Project ID *</label>
+              <input
+                type="text"
+                id="tagProjectId"
+                name="tagProjectId"
+                value={formData.tagProjectId}
+                onChange={handleInputChange}
+                placeholder="e.g. PROJ-2025-001"
+                required
+              />
+            </div>
+            
+            <div className="form-group">
+              <label htmlFor="tagProjectName">Project Name *</label>
+              <input
+                type="text"
+                id="tagProjectName"
+                name="tagProjectName"
+                value={formData.tagProjectName}
+                onChange={handleInputChange}
+                placeholder="e.g. Azure Migration Project"
+                required
+              />
+            </div>
+            
+            <div className="form-group">
+              <label htmlFor="tagCostCenter">Cost Center *</label>
+              <input
+                type="text"
+                id="tagCostCenter"
+                name="tagCostCenter"
+                value={formData.tagCostCenter}
+                onChange={handleInputChange}
+                placeholder="e.g. IT-001, MKT-500"
+                required
+              />
+            </div>
+            
+            <div className="form-group">
+              <label htmlFor="tagBusinessImpact">Business Impact *</label>
+              <select
+                id="tagBusinessImpact"
+                name="tagBusinessImpact"
+                value={formData.tagBusinessImpact}
+                onChange={handleInputChange}
+                required
+              >
+                <option value="Low">Low</option>
+                <option value="Medium">Medium</option>
+                <option value="High">High</option>
+                <option value="Critical">Critical</option>
+              </select>
+            </div>
+            
+            <div className="form-group">
+              <label htmlFor="tagDataSensitivity">Data Sensitivity *</label>
+              <select
+                id="tagDataSensitivity"
+                name="tagDataSensitivity"
+                value={formData.tagDataSensitivity}
+                onChange={handleInputChange}
+                required
+              >
+                <option value="Public">Public</option>
+                <option value="Internal">Internal</option>
+                <option value="Confidential">Confidential</option>
+                <option value="Restricted">Restricted</option>
+              </select>
             </div>
 
             {/* Action Buttons */}

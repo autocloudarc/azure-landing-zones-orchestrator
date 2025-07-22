@@ -178,7 +178,18 @@ const ViewRequests: React.FC = () => {
               </thead>
               <tbody>
                 {requests.map((request) => (
-                  <tr key={request.id} onClick={() => setSelectedRequest(request)}>
+                  <tr key={request.id} onClick={() => {
+                    console.log('🔍 Selected request metadata:', {
+                      tag_owner: request.tag_owner,
+                      tag_project_id: request.tag_project_id,
+                      tag_project_name: request.tag_project_name,
+                      tag_cost_center: request.tag_cost_center,
+                      tag_business_impact: request.tag_business_impact,
+                      tag_data_sensitivity: request.tag_data_sensitivity
+                    });
+                    console.log('📋 Full request object:', request);
+                    setSelectedRequest(request);
+                  }}>
                     <td>#{request.id}</td>
                     <td className="subscription-name" title={request.subscription_name}>
                       {request.subscription_name}
@@ -231,7 +242,15 @@ const ViewRequests: React.FC = () => {
       )}
 
       {/* Request Detail Modal */}
-      {selectedRequest && (
+      {selectedRequest && (() => {
+        console.log('🎯 Modal rendering with selectedRequest:', selectedRequest);
+        console.log('🏷️ Modal metadata values:', {
+          tag_owner: selectedRequest.tag_owner,
+          tag_project_id: selectedRequest.tag_project_id,
+          tag_business_impact: selectedRequest.tag_business_impact,
+          tag_data_sensitivity: selectedRequest.tag_data_sensitivity
+        });
+        return (
         <div className="modal-overlay" onClick={() => setSelectedRequest(null)}>
           <div className="modal-content" onClick={(e) => e.stopPropagation()}>
             <div className="modal-header">
@@ -432,7 +451,8 @@ const ViewRequests: React.FC = () => {
             </div>
           </div>
         </div>
-      )}
+        );
+      })()}
     </div>
   );
 };

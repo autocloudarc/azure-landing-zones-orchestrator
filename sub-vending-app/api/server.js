@@ -27,15 +27,78 @@ const dbConfig = {
 };
 
 let pool;
+let isDbConnected = false;
+
+// In-memory storage for development fallback
+let inMemoryStorage = {
+  requests: [
+    {
+      id: 1,
+      requester_name: 'John Doe',
+      requester_email: 'john.doe@company.com',
+      requester_department: 'IT Department',
+      subscription_name: 'dev-subscription-001',
+      business_unit: 'Technology',
+      monthly_budget_estimate: 500.00,
+      environment: 'dev',
+      region: 'East US',
+      product_line: 'online',
+      request_reason: 'Development environment for new application',
+      notes: 'Initial development phase',
+      status: 'pending',
+      hybrid_connectivity: false,
+      tag_owner: 'john.doe@company.com',
+      tag_cost_center: 'IT-001',
+      tag_environment: 'dev',
+      tag_project_name: 'Azure Migration Project',
+      tag_project_id: 'PROJ-2025-001',
+      tag_business_impact: 'Medium',
+      tag_data_sensitivity: 'Internal',
+      submission_date: new Date().toISOString(),
+      created_date: new Date().toISOString(),
+      last_updated: new Date().toISOString()
+    },
+    {
+      id: 2,
+      requester_name: 'Jane Smith',
+      requester_email: 'jane.smith@company.com',
+      requester_department: 'Marketing',
+      subscription_name: 'marketing-analytics',
+      business_unit: 'Marketing',
+      monthly_budget_estimate: 1000.00,
+      environment: 'prd',
+      region: 'West US 2',
+      product_line: 'online',
+      request_reason: 'Analytics platform for marketing campaigns',
+      notes: 'Production workload with high availability requirements',
+      status: 'approved',
+      hybrid_connectivity: true,
+      tag_owner: 'jane.smith@company.com',
+      tag_cost_center: 'MKT-500',
+      tag_environment: 'prd',
+      tag_project_name: 'Customer Analytics Platform',
+      tag_project_id: 'PROJ-2025-002',
+      tag_business_impact: 'High',
+      tag_data_sensitivity: 'Confidential',
+      submission_date: new Date().toISOString(),
+      created_date: new Date().toISOString(),
+      last_updated: new Date().toISOString()
+    }
+  ],
+  nextId: 3
+};
 
 // Initialize database connection pool
 async function initializeDatabase() {
   try {
     pool = await new sql.ConnectionPool(dbConfig).connect();
-    console.log('Connected to Azure SQL Database successfully');
+    console.log('✅ Connected to Azure SQL Database successfully');
+    isDbConnected = true;
   } catch (error) {
-    console.error('Database connection failed:', error);
-    process.exit(1);
+    console.error('❌ Database connection failed:', error.message);
+    console.log('🔄 Running in DEVELOPMENT MODE with in-memory storage');
+    console.log('📝 Sample data available for testing');
+    isDbConnected = false;
   }
 }
 
@@ -46,8 +109,145 @@ app.get('/api/health', (req, res) => {
   res.status(200).json({ 
     status: 'OK', 
     message: 'Azure Subscription Vending API is running',
+    mode: isDbConnected ? 'Database Connected' : 'Development Mode (In-Memory)',
+    database: isDbConnected ? 'Azure SQL' : 'In-Memory Storage',
     timestamp: new Date().toISOString()
   });
+});
+
+// Database inspection endpoint
+app.get('/api/database/inspect', async (req, res) => {
+  try {
+    if (!isDbConnected) {
+      return res.json({
+        success: true,
+        message: 'Using in-memory storage (development mode)',
+        mode: 'development',
+        sampleRecord: inMemoryStorage.requests[0]
+      });
+    }
+
+    // Check what columns exist in the database
+    const columnsResult = await pool.request().query(`
+      SELECT COLUMN_NAME, DATA_TYPE, IS_NULLABLE 
+      FROM INFORMATION_SCHEMA.COLUMNS 
+      WHERE TABLE_NAME = 'request'
+      ORDER BY ORDINAL_POSITION
+    `);
+
+    // Get a sample record
+    const sampleResult = await pool.request().query(`
+      SELECT TOP 1 * FROM [request] WHERE id = 1
+    `);
+
+    res.json({
+      success: true,
+      mode: 'database',
+      columns: columnsResult.recordset,
+      sampleRecord: sampleResult.recordset[0] || null,
+      message: 'Database inspection complete'
+    });
+
+  } catch (error) {
+    console.error('Database inspection error:', error);
+    res.status(500).json({
+      success: false,
+      error: error.message,
+      message: 'Failed to inspect database'
+    });
+  }
+});
+
+// Database migration endpoint to add missing metadata columns and populate data
+app.post('/api/database/migrate', async (req, res) => {
+  try {
+    if (!isDbConnected) {
+      return res.json({
+        success: false,
+        message: 'Database not connected - running in development mode'
+      });
+    }
+
+    const request = pool.request();
+    
+    // Check if metadata columns exist, if not add them
+    const checkColumns = await request.query(`
+      SELECT COUNT(*) as count 
+      FROM INFORMATION_SCHEMA.COLUMNS 
+      WHERE TABLE_NAME = 'request' 
+      AND COLUMN_NAME IN ('tag_owner', 'tag_project_id', 'tag_project_name', 'tag_cost_center', 'tag_business_impact', 'tag_data_sensitivity')
+    `);
+
+    const missingColumns = 6 - checkColumns.recordset[0].count;
+    
+    if (missingColumns > 0) {
+      // Add missing metadata columns
+      await request.query(`
+        ALTER TABLE [request] 
+        ADD tag_owner NVARCHAR(255),
+            tag_project_id NVARCHAR(100),
+            tag_project_name NVARCHAR(255),
+            tag_cost_center NVARCHAR(100),
+            tag_business_impact NVARCHAR(50),
+            tag_data_sensitivity NVARCHAR(50)
+      `);
+      console.log('✅ Added metadata columns to database');
+    }
+
+    // Update existing records with sample metadata
+    const updateRequest = pool.request();
+    await updateRequest.query(`
+      UPDATE [request] 
+      SET tag_owner = CASE 
+                        WHEN id = 1 THEN 'john.doe@company.com'
+                        WHEN id = 2 THEN 'jane.smith@company.com'
+                        ELSE requester_email
+                      END,
+          tag_project_id = CASE 
+                             WHEN id = 1 THEN 'PROJ-2025-001'
+                             WHEN id = 2 THEN 'PROJ-2025-002'
+                             ELSE 'PROJ-2025-' + CAST(id as VARCHAR(10))
+                           END,
+          tag_project_name = CASE 
+                               WHEN id = 1 THEN 'Azure Migration Project'
+                               WHEN id = 2 THEN 'Customer Analytics Platform'
+                               ELSE subscription_name + ' Project'
+                             END,
+          tag_cost_center = CASE 
+                              WHEN id = 1 THEN 'IT-001'
+                              WHEN id = 2 THEN 'MKT-500'
+                              ELSE 'CC-' + CAST(id as VARCHAR(10))
+                            END,
+          tag_business_impact = CASE 
+                                  WHEN environment = 'prd' THEN 'High'
+                                  WHEN environment = 'dev' THEN 'Medium'
+                                  ELSE 'Low'
+                                END,
+          tag_data_sensitivity = CASE 
+                                   WHEN environment = 'prd' THEN 'Confidential'
+                                   WHEN environment = 'dev' THEN 'Internal'
+                                   ELSE 'Internal'
+                                 END
+      WHERE tag_owner IS NULL
+    `);
+
+    console.log('✅ Updated database records with metadata');
+
+    res.json({
+      success: true,
+      message: 'Database migration completed successfully',
+      columnsAdded: missingColumns,
+      mode: 'database'
+    });
+
+  } catch (error) {
+    console.error('Database migration error:', error);
+    res.status(500).json({
+      success: false,
+      error: error.message,
+      message: 'Database migration failed'
+    });
+  }
 });
 
 // Submit a new subscription request
@@ -151,12 +351,22 @@ app.post('/api/requests', async (req, res) => {
 // Get all subscription requests
 app.get('/api/requests', async (req, res) => {
   try {
+    if (!isDbConnected) {
+      // Use in-memory storage for development
+      return res.status(200).json({
+        success: true,
+        data: inMemoryStorage.requests,
+        mode: 'development'
+      });
+    }
+
     const request = pool.request();
     const result = await request.query(`
       SELECT 
         id, subscription_name, business_unit, environment, 
         product_line, status, created_date, requester_name,
-        requester_email, monthly_budget_estimate
+        requester_email, requester_department, monthly_budget_estimate,
+        region, tag_project_name, tag_cost_center, hybrid_connectivity
       FROM [request]
       ORDER BY created_date DESC
     `);
@@ -180,6 +390,31 @@ app.get('/api/requests', async (req, res) => {
 app.get('/api/requests/:id', async (req, res) => {
   try {
     const { id } = req.params;
+    
+    if (!isDbConnected) {
+      // Use in-memory storage for development
+      console.log(`📋 Getting request ${id} from in-memory storage (development mode)`);
+      const request = inMemoryStorage.requests.find(r => r.id === parseInt(id));
+      if (!request) {
+        console.log(`❌ Request ${id} not found in in-memory storage`);
+        return res.status(404).json({
+          success: false,
+          message: 'Subscription request not found'
+        });
+      }
+      console.log(`✅ Found request ${id} with metadata:`, {
+        tag_owner: request.tag_owner,
+        tag_project_id: request.tag_project_id,
+        tag_business_impact: request.tag_business_impact,
+        tag_data_sensitivity: request.tag_data_sensitivity
+      });
+      return res.status(200).json({
+        success: true,
+        data: request,
+        mode: 'development'
+      });
+    }
+
     const request = pool.request();
     request.input('id', sql.Int, parseInt(id));
 
@@ -262,6 +497,47 @@ app.put('/api/requests/:id', async (req, res) => {
   try {
     const { id } = req.params;
     const requestData = req.body;
+
+    if (!isDbConnected) {
+      // Use in-memory storage for development
+      const requestIndex = inMemoryStorage.requests.findIndex(r => r.id === parseInt(id));
+      if (requestIndex === -1) {
+        return res.status(404).json({
+          success: false,
+          message: 'Subscription request not found'
+        });
+      }
+
+      // Update the request in memory
+      inMemoryStorage.requests[requestIndex] = {
+        ...inMemoryStorage.requests[requestIndex],
+        subscription_name: requestData.subscription_name || inMemoryStorage.requests[requestIndex].subscription_name,
+        business_unit: requestData.business_unit || inMemoryStorage.requests[requestIndex].business_unit,
+        monthly_budget_estimate: requestData.monthly_budget_estimate || inMemoryStorage.requests[requestIndex].monthly_budget_estimate,
+        environment: requestData.environment || inMemoryStorage.requests[requestIndex].environment,
+        region: requestData.region || inMemoryStorage.requests[requestIndex].region,
+        request_reason: requestData.request_reason || inMemoryStorage.requests[requestIndex].request_reason,
+        notes: requestData.notes || inMemoryStorage.requests[requestIndex].notes,
+        requester_name: requestData.requester_name || inMemoryStorage.requests[requestIndex].requester_name,
+        requester_email: requestData.requester_email || inMemoryStorage.requests[requestIndex].requester_email,
+        requester_department: requestData.requester_department || inMemoryStorage.requests[requestIndex].requester_department,
+        // Metadata fields
+        tag_owner: requestData.tag_owner || inMemoryStorage.requests[requestIndex].tag_owner,
+        tag_project_id: requestData.tag_project_id || inMemoryStorage.requests[requestIndex].tag_project_id,
+        tag_project_name: requestData.tag_project_name || inMemoryStorage.requests[requestIndex].tag_project_name,
+        tag_cost_center: requestData.tag_cost_center || inMemoryStorage.requests[requestIndex].tag_cost_center,
+        tag_business_impact: requestData.tag_business_impact || inMemoryStorage.requests[requestIndex].tag_business_impact,
+        tag_data_sensitivity: requestData.tag_data_sensitivity || inMemoryStorage.requests[requestIndex].tag_data_sensitivity,
+        last_updated: new Date().toISOString()
+      };
+
+      return res.status(200).json({
+        success: true,
+        message: 'Request updated successfully',
+        data: inMemoryStorage.requests[requestIndex],
+        mode: 'development'
+      });
+    }
 
     // First, check if the request exists
     const checkRequest = pool.request();
