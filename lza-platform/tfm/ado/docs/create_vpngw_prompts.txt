@@ -1,0 +1,59 @@
+starter_location_01=eastus2
+starter_location_02=centralus
+
+primary_virtual_network_gateway_vpn_enabled = false
+secondary_virtual_network_gateway_vpn_enabled = false
+
+primary_virtual_network_gateway_vpn_name                     = "vgw-hub-vpn-$${starter_location_01}"
+primary_virtual_network_gateway_vpn_public_ip_name_1         = "pip-vgw-hub-vpn-$${starter_location_01}-001"
+primary_virtual_network_gateway_vpn_public_ip_name_2         = "pip-vgw-hub-vpn-$${starter_location_01}-002"
+
+secondary_virtual_network_gateway_vpn_name                     = "vgw-hub-vpn-$${starter_location_02}"
+secondary_virtual_network_gateway_vpn_public_ip_name_1         = "pip-vgw-hub-vpn-$${starter_location_02}-001"
+secondary_virtual_network_gateway_vpn_public_ip_name_2         = "pip-vgw-hub-vpn-$${starter_location_02}-002"
+
+primary_gateway_subnet_address_prefix              = "10.0.0.128/27"
+secondary_gateway_subnet_address_prefix              = "10.1.0.128/27"
+
+
+vpn_primary = {
+enabled  = "$${primary_virtual_network_gateway_vpn_enabled}"
+location = "$${starter_location_01}"
+name     = "$${primary_virtual_network_gateway_vpn_name}"
+sku      = "$${starter_location_01_virtual_network_gateway_sku_vpn}"
+ip_configurations = {
+    active_active_1 = {
+    public_ip = {
+        name  = "$${primary_virtual_network_gateway_vpn_public_ip_name_1}"
+        zones = "$${starter_location_01_availability_zones}"
+    }
+    }
+    active_active_2 = {
+    public_ip = {
+        name  = "$${primary_virtual_network_gateway_vpn_public_ip_name_2}"
+        zones = "$${starter_location_01_availability_zones}"
+    }
+    }
+}
+}
+
+vpn_secondary = {
+enabled  = "$${secondary_virtual_network_gateway_vpn_enabled}"
+location = "$${starter_location_02}"
+name     = "$${secondary_virtual_network_gateway_vpn_name}"
+sku      = "$${starter_location_02_virtual_network_gateway_sku_vpn}"
+ip_configurations = {
+    active_active_1 = {
+    public_ip = {
+        name  = "$${secondary_virtual_network_gateway_vpn_public_ip_name_1}"
+        zones = "$${starter_location_02_availability_zones}"
+    }
+    }
+    active_active_2 = {
+    public_ip = {
+        name  = "$${secondary_virtual_network_gateway_vpn_public_ip_name_2}"
+        zones = "$${starter_location_02_availability_zones}"
+    }
+    }
+}
+}

@@ -1,0 +1,162 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "title": "Azure Subscription Intake Schema",
+  "type": "object",
+  "required": [
+    "requester",
+    "subscriptionName",
+    "businessUnit",
+    "monthlyBudgetEstimate",
+    "environment",
+    "region",
+    "tags",
+    "productLine"
+  ],
+  "properties": {
+    "requester": {
+      "type": "object",
+      "required": ["name", "email", "department"],
+      "properties": {
+        "name": { "type": "string" },
+        "email": { "type": "string", "format": "email" },
+        "department": { "type": "string" }
+      }
+    },
+    "manager": {
+      "type": "object",
+      "required": ["name", "email", "department"],
+      "properties": {
+        "name": { "type": "string" },
+        "email": { "type": "string", "format": "email" },
+        "department": { "type": "string" }
+      }
+    },
+    "approver": {
+      "type": "object",
+      "required": ["name", "email", "department"],
+      "properties": {
+        "name": { "type": "string" },
+        "email": { "type": "string", "format": "email" },
+        "department": { "type": "string" }
+      }
+    },
+    "subscriptionName": {
+      "type": "string",
+      "pattern": "^[a-zA-Z0-9-_]{3,50}$",
+      "description": "Name must be unique and follow naming convention rules"
+    },
+    "rbacGroup": {
+      "type": "object",
+      "description": "RBAC group to assign to the subscription",
+      "properties": {
+        "groupName": { "type": "string" },
+        "role": {
+          "type": "string",
+          "enum": ["Owner", "Contributor", "Reader", "CustomRole"],
+          "default": "Contributor"
+        }
+      }
+    },
+    "managedIdentities": {
+      "type": "array",
+      "description": "List of managed identities to assign to the subscription",
+      "items":[{
+        "type": "object",
+        "required": ["name", "role"],
+        "properties": {
+          "name": { "type": "string" },
+          "role": {
+            "type": "string",
+            "enum": ["Reader", "Contributor", "CustomRole"]
+          }
+        }
+      }]
+    },
+    "businessUnit": {
+      "type": "string"
+    },
+    "monthlyBudgetEstimate": {
+      "type": "number",
+      "minimum": 0,
+      "description": "Estimated monthly budget in USD.",
+      "default": 1000
+    },
+    "environment": {
+      "type": "string",
+      "enum": ["prd", "dev", "tst", "qua", "stg", "ppd"],
+      "default": "dev"
+    },
+    "hybridConnectivity": {
+      "type": "boolean",
+      "description": "Whether hybrid connectivity is required for the subscription",
+      "default": false
+    },
+    "region": {
+      "type": "string",
+      "description": "Preferred Azure region for core services",
+      "default": "East US"
+    },
+    "tags": {
+      "type": "object",
+      "description": "Standardized governance tags",
+      "properties": {
+        "Owner": { "type": "string" },
+        "CostCenter": { "type": "string" },
+        "Environment": { "type": "string" },
+        "ProjectName": { "type": "string" },
+        "ProjectID": { "type": "string" },
+        "businessImpact": {
+          "type": "string",
+          "enum": ["High", "Medium", "Low"],
+          "default": "Medium"
+        },
+        "dataSensitivity": {
+          "type": "string",
+          "enum": ["Public", "Internal", "Confidential", "Restricted"],
+          "default": "Internal"
+        }
+      },
+      "required": ["Owner", "CostCenter", "Environment","ProjectName","ProjectID"]
+    },
+    "productLine": {
+      "type": "string",
+      "description": "Product line or service category for the subscription",
+      "enum": [
+        "corpConnected",
+        "online",
+        "techPlatform",
+        "sharedApplicationPortfolio",
+        "sandbox"
+      ],
+      "default": "sandbox"
+    },
+    "networking": {
+      "type": "object",
+      "description": "Optional VNet integration details",
+      "properties": {
+        "requireHubPeering": { 
+          "type": "boolean",
+          "default": false
+        },
+        "vnetName": { "type": "string" },
+        "addressSpace": { "type": "string" }
+      }
+    },
+    "policyAssignment": {
+      "type": "object",
+      "description": "Policies or initiatives to apply after vending",
+      "properties": {
+        "policyName": { "type": "string" },
+        "policyType": {
+          "type": "string",
+          "enum": ["Policy", "Initiative"],
+          "default": "Policy"
+        },
+        "assignImmediately": { 
+          "type": "boolean",
+          "default": true
+        }
+      }
+    }
+  }
+}
