@@ -11,7 +11,6 @@ interface RequesterInfo {
 interface Tags {
   Owner: string;
   CostCenter: string;
-  Environment: string;
   ProjectName: string;
   ProjectID: string;
   businessImpact: 'High' | 'Medium' | 'Low';
@@ -29,6 +28,10 @@ interface RequestFormData {
   approver?: RequesterInfo;
   subscriptionName: string;
   businessUnit: string;
+  applicationGroup: string;
+  networkName: string;
+  networkCIDR: string;
+  notes: string;
   monthlyBudgetEstimate: number;
   environment: 'prd' | 'dev' | 'tst' | 'qua' | 'stg' | 'ppd';
   region: string;
@@ -55,15 +58,20 @@ interface RequestFormData {
 const CreateRequest: React.FC = () => {
   const [formData, setFormData] = useState<RequestFormData>({
     requester: { name: '', email: '', department: '' },
+    manager: { name: '', email: '', department: '' },
+    approver: { name: '', email: '', department: '' },
     subscriptionName: '',
     businessUnit: '',
+    applicationGroup: '',
+    networkName: '',
+    networkCIDR: '',
+    notes: '',
     monthlyBudgetEstimate: 1000,
     environment: 'dev',
     region: 'East US',
     tags: {
       Owner: '',
       CostCenter: '',
-      Environment: 'dev',
       ProjectName: '',
       ProjectID: '',
       businessImpact: 'Medium',
@@ -213,6 +221,9 @@ const CreateRequest: React.FC = () => {
                 onChange={(e) => handleInputChange(e, 'requester', 'name')}
                 required
               />
+              <div className="form-hint">
+                Enter your full name as it appears in your organization's directory.
+              </div>
             </div>
             <div className="form-group">
               <label htmlFor="requester-email">Email *</label>
@@ -223,6 +234,9 @@ const CreateRequest: React.FC = () => {
                 onChange={(e) => handleInputChange(e, 'requester', 'email')}
                 required
               />
+              <div className="form-hint">
+                Provide your corporate email address for notifications and communications.
+              </div>
             </div>
             <div className="form-group">
               <label htmlFor="requester-department">Department *</label>
@@ -233,6 +247,91 @@ const CreateRequest: React.FC = () => {
                 onChange={(e) => handleInputChange(e, 'requester', 'department')}
                 required
               />
+              <div className="form-hint">
+                Specify your department or organizational unit (e.g., IT, Finance, Marketing).
+              </div>
+            </div>
+          </section>
+
+          {/* Manager Information */}
+          <section className="form-section">
+            <h2>Manager Information</h2>
+            <div className="form-group">
+              <label htmlFor="manager-name">Manager Name</label>
+              <input
+                type="text"
+                id="manager-name"
+                value={formData.manager?.name || ''}
+                onChange={(e) => handleInputChange(e, 'manager', 'name')}
+              />
+              <div className="form-hint">
+                Enter your direct manager's full name for approval workflow.
+              </div>
+            </div>
+            <div className="form-group">
+              <label htmlFor="manager-email">Manager Email</label>
+              <input
+                type="email"
+                id="manager-email"
+                value={formData.manager?.email || ''}
+                onChange={(e) => handleInputChange(e, 'manager', 'email')}
+              />
+              <div className="form-hint">
+                Provide your manager's corporate email address for approval notifications.
+              </div>
+            </div>
+            <div className="form-group">
+              <label htmlFor="manager-department">Manager Department</label>
+              <input
+                type="text"
+                id="manager-department"
+                value={formData.manager?.department || ''}
+                onChange={(e) => handleInputChange(e, 'manager', 'department')}
+              />
+              <div className="form-hint">
+                Specify your manager's department or organizational unit.
+              </div>
+            </div>
+          </section>
+
+          {/* Approver Information */}
+          <section className="form-section">
+            <h2>Approver Information</h2>
+            <div className="form-group">
+              <label htmlFor="approver-name">Approver Name</label>
+              <input
+                type="text"
+                id="approver-name"
+                value={formData.approver?.name || ''}
+                onChange={(e) => handleInputChange(e, 'approver', 'name')}
+              />
+              <div className="form-hint">
+                Enter the final approver's name (e.g., department head, IT director).
+              </div>
+            </div>
+            <div className="form-group">
+              <label htmlFor="approver-email">Approver Email</label>
+              <input
+                type="email"
+                id="approver-email"
+                value={formData.approver?.email || ''}
+                onChange={(e) => handleInputChange(e, 'approver', 'email')}
+              />
+              <div className="form-hint">
+                Provide the approver's corporate email address for final authorization.
+              </div>
+            </div>
+            <div className="form-group">
+              <label htmlFor="approver-department">Approver Department</label>
+              <input
+                type="text"
+                id="approver-department"
+                value={formData.approver?.department || ''}
+                onChange={(e) => handleInputChange(e, 'approver', 'department')}
+              />
+              <div className="form-hint">
+                Specify the approver's department or organizational unit.
+              </div>
             </div>
           </section>
 
@@ -272,6 +371,50 @@ const CreateRequest: React.FC = () => {
               </div>
             </div>
             <div className="form-group">
+              <label htmlFor="applicationGroup">Application Group</label>
+              <input
+                type="text"
+                id="applicationGroup"
+                name="applicationGroup"
+                value={formData.applicationGroup}
+                onChange={handleInputChange}
+                placeholder="e.g. Web Applications, Data Analytics, Mobile Apps"
+              />
+              <div className="form-hint">
+                The application group or category this subscription supports.
+              </div>
+            </div>
+            <div className="form-group">
+              <label htmlFor="networkName">Network Name</label>
+              <input
+                type="text"
+                id="networkName"
+                name="networkName"
+                value={formData.networkName}
+                onChange={handleInputChange}
+                placeholder="e.g. corp-network, dmz-network, isolated-network"
+              />
+              <div className="form-hint">
+                Name of the network this subscription will be connected to.
+              </div>
+            </div>
+            <div className="form-group">
+              <label htmlFor="networkCIDR">Network CIDR</label>
+              <input
+                type="text"
+                id="networkCIDR"
+                name="networkCIDR"
+                value={formData.networkCIDR}
+                onChange={handleInputChange}
+                placeholder="e.g. 10.0.0.0/16, 172.16.0.0/12, 192.168.0.0/16"
+                pattern="^(?:(?:25[0-5]|2[0-4][0-9]|[01]?[0-9][0-9]?)\.){3}(?:25[0-5]|2[0-4][0-9]|[01]?[0-9][0-9]?)\/(?:[0-9]|[1-2][0-9]|3[0-2])$"
+                title="Enter a valid CIDR notation (e.g., 10.0.0.0/16)"
+              />
+              <div className="form-hint">
+                Specify the IP address range in CIDR notation for the network (e.g., 10.0.0.0/16).
+              </div>
+            </div>
+            <div className="form-group">
               <label htmlFor="monthlyBudgetEstimate">Monthly Budget Estimate (USD)</label>
               <input
                 type="number"
@@ -282,6 +425,9 @@ const CreateRequest: React.FC = () => {
                 min="0"
                 step="0.01"
               />
+              <div className="form-hint">
+                Estimated monthly Azure spending for this subscription in USD.
+              </div>
             </div>
             <div className="form-group">
               <label htmlFor="environment">Environment</label>
@@ -291,13 +437,16 @@ const CreateRequest: React.FC = () => {
                 value={formData.environment}
                 onChange={handleInputChange}
               >
-                <option value="dev">Development</option>
-                <option value="tst">Test</option>
-                <option value="qua">Quality Assurance</option>
-                <option value="stg">Staging</option>
-                <option value="ppd">Pre-production</option>
-                <option value="prd">Production</option>
+                <option value="dev">dev</option>
+                <option value="tst">tst</option>
+                <option value="qua">qua</option>
+                <option value="stg">stg</option>
+                <option value="ppd">ppd</option>
+                <option value="prd">prd</option>
               </select>
+              <div className="form-hint">
+                Select the environment type that best describes this subscription's purpose.
+              </div>
             </div>
             <div className="form-group">
               <label htmlFor="region">Region *</label>
@@ -328,6 +477,9 @@ const CreateRequest: React.FC = () => {
                 <option value="techPlatform">Tech Platform</option>
                 <option value="sharedApplicationPortfolio">Shared Application Portfolio</option>
               </select>
+              <div className="form-hint">
+                Choose the product line that best categorizes your subscription's intended use.
+              </div>
             </div>
           </section>
 
@@ -343,6 +495,9 @@ const CreateRequest: React.FC = () => {
                 onChange={(e) => handleInputChange(e, 'tags', 'Owner')}
                 required
               />
+              <div className="form-hint">
+                Product or workload / application / project owner.
+              </div>
             </div>
             <div className="form-group">
               <label htmlFor="tag-cost-center">Cost Center *</label>
@@ -357,16 +512,6 @@ const CreateRequest: React.FC = () => {
               <small className="form-hint">
                 Enter the cost center code for billing and financial tracking. Contact your finance team if unsure.
               </small>
-            </div>
-            <div className="form-group">
-              <label htmlFor="tag-environment">Environment *</label>
-              <input
-                type="text"
-                id="tag-environment"
-                value={formData.tags.Environment}
-                onChange={(e) => handleInputChange(e, 'tags', 'Environment')}
-                required
-              />
             </div>
             <div className="form-group">
               <label htmlFor="tag-project-name">Project Name *</label>
@@ -391,6 +536,9 @@ const CreateRequest: React.FC = () => {
                 onChange={(e) => handleInputChange(e, 'tags', 'ProjectID')}
                 required
               />
+              <div className="form-hint">
+                Unique identifier for your project (e.g. PRJ-001, WEBAPP-2025, DATA-ANALYTICS-01).
+              </div>
             </div>
             <div className="form-group">
               <label htmlFor="tag-business-impact">Business Impact</label>
@@ -403,6 +551,9 @@ const CreateRequest: React.FC = () => {
                 <option value="Medium">Medium</option>
                 <option value="High">High</option>
               </select>
+              <div className="form-hint">
+                Select the business impact level: High (critical operations), Medium (important functions), Low (non-critical).
+              </div>
             </div>
             <div className="form-group">
               <label htmlFor="tag-data-sensitivity">Data Sensitivity</label>
@@ -416,6 +567,9 @@ const CreateRequest: React.FC = () => {
                 <option value="Confidential">Confidential</option>
                 <option value="Restricted">Restricted</option>
               </select>
+              <div className="form-hint">
+                Choose data classification: Public (no restrictions), Internal (company only), Confidential (limited access), Restricted (highly sensitive).
+              </div>
             </div>
           </section>
 
@@ -438,6 +592,9 @@ const CreateRequest: React.FC = () => {
             {/* Managed Identities */}
             <div className="subsection">
               <h3>Managed Identities</h3>
+              <div className="form-hint">
+                Managed identities that will be used for automated Infrastructure as Code (IaC) deployments. These provide secure authentication for deployment pipelines and automation tools to access Azure resources.
+              </div>
               {managedIdentities.map((mi, index) => (
                 <div key={index} className="managed-identity-row">
                   <input
@@ -459,6 +616,25 @@ const CreateRequest: React.FC = () => {
                 </div>
               ))}
               <button type="button" onClick={addManagedIdentity}>Add Managed Identity</button>
+            </div>
+          </section>
+
+          {/* Notes Section */}
+          <section className="form-section">
+            <h2>Additional Information</h2>
+            <div className="form-group">
+              <label htmlFor="notes">Notes</label>
+              <textarea
+                id="notes"
+                name="notes"
+                value={formData.notes}
+                onChange={handleInputChange}
+                rows={4}
+                placeholder="Any additional information, special requirements, or comments..."
+              />
+              <div className="form-hint">
+                Provide any additional context, special requirements, or comments for this subscription request.
+              </div>
             </div>
           </section>
 

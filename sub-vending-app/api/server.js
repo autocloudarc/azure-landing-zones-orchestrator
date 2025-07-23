@@ -228,7 +228,7 @@ app.post('/api/database/migrate', async (req, res) => {
                                    WHEN environment = 'dev' THEN 'Internal'
                                    ELSE 'Internal'
                                  END
-      WHERE tag_owner IS NULL
+      WHERE tag_owner IS NULL OR tag_owner = ''
     `);
 
     console.log('✅ Updated database records with metadata');
@@ -246,6 +246,70 @@ app.post('/api/database/migrate', async (req, res) => {
       success: false,
       error: error.message,
       message: 'Database migration failed'
+    });
+  }
+});
+
+// Force migration endpoint - updates ALL records regardless of current values
+app.post('/api/database/force-migrate', async (req, res) => {
+  try {
+    if (!isDbConnected) {
+      return res.json({
+        success: false,
+        message: 'Database not connected - running in development mode'
+      });
+    }
+
+    // Force update ALL records with metadata
+    const updateRequest = pool.request();
+    await updateRequest.query(`
+      UPDATE [request] 
+      SET tag_owner = CASE 
+                        WHEN id = 1 THEN 'john.doe@company.com'
+                        WHEN id = 2 THEN 'jane.smith@company.com'
+                        ELSE requester_email
+                      END,
+          tag_project_id = CASE 
+                             WHEN id = 1 THEN 'PROJ-2025-001'
+                             WHEN id = 2 THEN 'PROJ-2025-002'
+                             ELSE 'PROJ-2025-' + CAST(id as VARCHAR(10))
+                           END,
+          tag_project_name = CASE 
+                               WHEN id = 1 THEN 'Azure Migration Project'
+                               WHEN id = 2 THEN 'Customer Analytics Platform'
+                               ELSE subscription_name + ' Project'
+                             END,
+          tag_cost_center = CASE 
+                              WHEN id = 1 THEN 'IT-001'
+                              WHEN id = 2 THEN 'MKT-500'
+                              ELSE 'CC-' + CAST(id as VARCHAR(10))
+                            END,
+          tag_business_impact = CASE 
+                                  WHEN environment = 'prd' THEN 'High'
+                                  WHEN environment = 'dev' THEN 'Medium'
+                                  ELSE 'Low'
+                                END,
+          tag_data_sensitivity = CASE 
+                                   WHEN environment = 'prd' THEN 'Confidential'
+                                   WHEN environment = 'dev' THEN 'Internal'
+                                   ELSE 'Internal'
+                                 END
+    `);
+
+    console.log('🔥 Force updated ALL database records with metadata');
+
+    res.json({
+      success: true,
+      message: 'Force migration completed - ALL records updated',
+      mode: 'database'
+    });
+
+  } catch (error) {
+    console.error('Force migration error:', error);
+    res.status(500).json({
+      success: false,
+      error: error.message,
+      message: 'Force migration failed'
     });
   }
 });
